@@ -57,6 +57,7 @@ displayed. The schema is an overview of the column names and the
 variable types that are in each column (or feature).  
 
 ![F2_DatasetDescription](Images/F2_Datadescription.png)
+
 Figure 2: The number of rows and columns and the schema of the dataframe
 
 
