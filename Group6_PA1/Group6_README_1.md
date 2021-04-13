@@ -48,3 +48,20 @@ scp -r \
 cookjc@hadoop-nn001.cs.okstate.edu:/home/cookjc/\
 Housing_data-Final-1.csv .
 ```
+
+## Descriptionn of dataset
+
+The spark program is used to determine the number of features (columns)
+and rows that are in the dataset. The output of that is 
+```
+present screen shot or code output window of the n.columns and n.rows
+```
+
+At the very bottom of the data set (row 11,583) there exists a 
+description of what some of the keys in the dataset mean:
+
+ - Type:
+	- h - house, cottage, villa, semi, terrace
+	- u - unit, duplex
+	- t - townhouse site, development side
+	- o - res, other residential
