@@ -52,16 +52,31 @@ Housing_data-Final-1.csv .
 ## Descriptionn of dataset
 
 The spark program is used to determine the number of features (columns)
-and rows that are in the dataset. The output of that is 
-```
-present screen shot or code output window of the n.columns and n.rows
-```
+and rows that are in the dataset. The schema of the dataset is also 
+displayed. The schema is an overview of the column names and the 
+variable types that are in each column (or feature).  
+
+![F2_DatasetDescription](Images/F2_Datadescription.png)
+Figure 2: The number of rows and columns and the schema of the dataframe
+
 
 At the very bottom of the data set (row 11,583) there exists a 
 description of what some of the keys in the dataset mean:
 
- - Type:
+- Suburb - name of suburb
+
+- Type:
 	- h - house, cottage, villa, semi, terrace
 	- u - unit, duplex
 	- t - townhouse site, development side
 	- o - res, other residential
+- Price: Price in dollars ($)
+- Distance: Distance from CBD
+- Zipcode: the zipcode where the unit is located
+- Bedroom: number of bedrooms
+- Bathroom: number of bathrooms
+- Car Garage: number of car garages
+- Lot Size: the size of the property (in acres)
+- Region name: General region (West, North West, North, North East, etc.)
+- Property count: Number of properties that exist in the suburb 
+
