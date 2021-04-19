@@ -49,7 +49,7 @@ cookjc@hadoop-nn001.cs.okstate.edu:/home/cookjc/\
 Housing_data-Final-1.csv .
 ```
 
-## Descriptionn of dataset
+## Description of dataset
 
 The spark program is used to determine the number of features (columns)
 and rows that are in the dataset. The schema of the dataset is also 
@@ -62,7 +62,9 @@ Figure 2: The number of rows and columns and the schema of the dataframe
 
 
 At the very bottom of the data set (row 11,583) there exists a 
-description of what some of the keys in the dataset mean:
+description of what some of the keys in the dataset mean (Note: these
+columns have been removed and the file has been renamed to 
+Housing_data-Final-2.csv):
 
 - Suburb - name of suburb
 
