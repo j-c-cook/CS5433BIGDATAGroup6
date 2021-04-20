@@ -62,9 +62,7 @@ Figure 2: The number of rows and columns and the schema of the dataframe
 
 
 At the very bottom of the data set (row 11,583) there exists a 
-description of what some of the keys in the dataset mean (Note: these
-columns have been removed and the file has been renamed to 
-Housing_data-Final-2.csv):
+description of what some of the keys in the dataset mean:
 
 - Suburb - name of suburb
 
@@ -83,3 +81,15 @@ Housing_data-Final-2.csv):
 - Region name: General region (West, North West, North, North East, etc.)
 - Property count: Number of properties that exist in the suburb 
 
+There are 7 region names, 3 housing types and 312 suburbs.
+
+### Issues with the data
+There are rows at the bottom at the data that helped to describe the
+data, but it did not contain any meaningful data for processing and has
+been removed. 
+
+Here is a list of the csv files and a description of what they are:
+
+ -  Housing_data-Final-1.csv - the original csv supplied 
+ -  Housing_data-Final-2.csv - the bottom 20 rows of garbage data are
+    removed

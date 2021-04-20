@@ -12,6 +12,7 @@ bin/spark-submit Group6_Task_1_Code.py path/to/file.csv
 from pyspark import SparkConf, SparkContext
 import sys
 from pyspark.sql import SQLContext
+from pyspark.sql.types import StringType
 
 # Give the spark configuration
 conf = SparkConf().setMaster("local").setAppName("Group6Task1Code")
@@ -51,4 +52,27 @@ print('The number of rows in the dataset: {}'.format(n_rows))
 n_cols = len(df.columns)
 print('The number of columns in the dataframe: {}'.format(n_cols))
 
+# Provide a description of the dataset in the console (print)
 df.printSchema()
+
+# For the string columns, we can take the set of each column to find the unique values
+str_cols = ['Suburb', 'Type', 'Region_name']
+
+# export each column containing type string to a csv by the name of that column
+for i in range(len(str_cols)):
+	str_col = str_cols[i]
+	_df = df.select(str_col)
+	df2 = _df.distinct()
+	df2.toPandas().to_csv('{}.csv'.format(str_cols[i]))
+# The Property_count is of type integer, and appears to be the same at each suburb
+# Find the the distincts of 'Suburb' and 'Property_count'
+_df = df.select('Suburb', 'Property_count')
+df2 = _df.distinct()
+df2.toPandas().to_csv('Suburb-Property_count.csv')
+# There are 312 rows in 'Suburb.csv' and 'Suburb-Property_count.csv'
+
+# One hot encoder
+# https://spark.apache.org/docs/3.1.1/api/python/reference/api/pyspark.ml.feature.OneHotEncoder.html
+
+# Cosine Similarity
+# https://stackoverflow.com/a/46764347/11637415
