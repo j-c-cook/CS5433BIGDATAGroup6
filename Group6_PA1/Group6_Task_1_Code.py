@@ -13,6 +13,11 @@ from pyspark import SparkConf, SparkContext
 import sys
 from pyspark.sql import SQLContext
 from pyspark.sql.types import StringType
+from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler
+from pyspark.ml import Pipeline
+from pyspark.ml.linalg import Vectors
+import pyspark.sql.functions as f
+from functools import reduce
 
 # Give the spark configuration
 conf = SparkConf().setMaster("local").setAppName("Group6Task1Code")
@@ -71,8 +76,26 @@ df2 = _df.distinct()
 df2.toPandas().to_csv('Suburb-Property_count.csv')
 # There are 312 rows in 'Suburb.csv' and 'Suburb-Property_count.csv'
 
-# One hot encoder
-# https://spark.apache.org/docs/3.1.1/api/python/reference/api/pyspark.ml.feature.OneHotEncoder.html
+# Index string columns to give them a numeric value from 0->n
+# https://stackoverflow.com/a/65849758/11637415
+# the index of the string values in the columns
+indexers = [StringIndexer(inputCol=c, outputCol='{0}_indexed'.format(c)) for c in str_cols]
+
+# Create a new dataframe with the string columns indexed
+pipeline = Pipeline(stages=indexers)
+df2 = pipeline.fit(df).transform(df)
+df2.toPandas().to_csv('strings_indexed.csv')
+
+# Select all non-string columns and create a new df
+cols = df2.schema.names
+cols = [cols[i] for i in range(len(cols)) if cols[i] not in str_cols]
+df3 = df2.select(*cols)
+df3.toPandas().to_csv('strings_indexed_reduced.csv')
+
+# WORKING WITH DF3 NOW
+
+# Determine what are "out of range" values
+df3.where(reduce(lambda x, y: x | y, (f.col(x).isNull() for x in df.columns))).show()
 
 # Cosine Similarity
 # https://stackoverflow.com/a/46764347/11637415
