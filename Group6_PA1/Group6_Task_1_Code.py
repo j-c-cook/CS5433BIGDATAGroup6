@@ -29,8 +29,8 @@ The following is a list of the tasks performed in this file in order:
 
 from pyspark import SparkConf, SparkContext
 import sys
-from pyspark.sql import SQLContext
-from pyspark.sql.types import StringType, FloatType
+from pyspark.sql import SQLContext, SparkSession
+from pyspark.sql.types import StringType, FloatType, StructType
 from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler
 from pyspark.ml import Pipeline
 from pyspark.ml.linalg import Vectors
@@ -177,16 +177,130 @@ print('The total rows in the good and bad dataframes are: {}'.\
 # ---------------------------------------------------------------------
 # Normalize the dataframe that contains good values
 # ---------------------------------------------------------------------
+def normalize_formula(df, averages, std_devs, column):
+	# norm = [(X - mean) / std_dev]
+	df = df.withColumn(column, \
+                          ((df[column] - averages[column]) \
+                            / std_devs[column + '_stddev']))
+	return df
+
+
+def normalize(train_df, test_df, columns):
+	"""
+	Normalize the columns of the testing and training dataframe with
+	mean and standard deviation computed using the training
+	dataframe. This results in no data leakage.
+
+	norm = [(X - mean) / std_dev ]
+
+	Inspiration: Morgan McGuire
+	URL: https://gist.github.com/morganmcg1/15a9de711b9c5e8e1bd142b4be80252d#file-pyspark_normalize-py
+	"""
+	# find the mean and standard deviation for each column in
+	# train_df
+	aggExpr = []
+	aggStd = []
+	for column in columns:
+		aggExpr.append(f.mean(train_df[column]).alias(column))
+		aggStd.append(f.stddev(train_df[column]).\
+			      alias(column + '_stddev'))
+
+	averages = train_df.agg(*aggExpr).collect()[0]
+	std_devs = train_df.agg(*aggStd).collect()[0]
+
+	# normalize each dataframe, column by column
+	for column in columns:
+		# normalize the training data
+		train_df = normalize_formula(train_df, 
+					     averages, 
+					     std_devs, 
+				   	     column)
+
+		# normalize the test data (using the training mean
+		# and std_dev
+		test_df = normalize_formula(test_df, 
+  					    averages, 
+                                            std_devs, 
+					    column)
+	return train_df, test_df, averages, std_devs
+
+
+# ---------------------------------------------------------------------
+# Merge dataframes back and de-normalize
+# ---------------------------------------------------------------------
+def de_normalize_formula(df, averages, std_devs, column):
+	# X = norm * std_dev + mean
+        df = df.withColumn(column, \
+                          ((df[column] * std_devs[column + '_stddev'] \
+                            + averages[column])))
+        return df
+
+
+def de_normalize(df, averages, std_devs, columns):
+	"""
+	De-normalize the columns of a given dataframe given the averages
+	and standard deviations calcuated in func:`normalize()`.
+
+	X = norm * std_dev + mean
+	"""
+	for column in columns:
+		df = de_normalize_formula(df, 
+                                          averages, 
+					  std_devs, 
+					  column)
+	return df
 
 
 # ---------------------------------------------------------------------
 # Use cosine similarity to replace bad values in mal dataframes
 # ---------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+# --------------------------- Examples --------------------------------
+# ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
-# Merge dataframes back and de-normalize
+# Cosine similarity without normalization
 # ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# Cosine similarity with normalization
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# Verification of normalization and de-normalization
+# ---------------------------------------------------------------------
+# It is imperitive that the data can be normalized and then
+# denormalized in a way that does not change the data.
+# This example proves that the normalization and then denormalization
+# process does not corrupt the data.
+# This process makes use of the original "gut" or dataframe containing
+# only good values
+
+# https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.DataFrame.summary.html#pyspark.sql.DataFrame.summary
+# Export a statistics summary of the data in the untouched dataframe
+df4_gut_summary = df4_gut.summary()
+df4_gut_summary.toPandas().to_csv('df4_gut_summary.csv')
+
+# Get all of the column names in the dataframe
+cols = df4_gut.schema.names
+
+# Standardize the good dataframe
+# Consider the good dataframe both the train and test
+df4_gut_norm_1, df4_gut_norm_2, \
+averages, std_devs = normalize(df4_gut, df4_gut, cols)
+
+# Denormalize one of the normalized good dataframes, export summary
+# statistics to csv so that it can be compared to the statistics that
+# were present prior to normalization
+df4_gut_de_norm = de_normalize(df4_gut_norm_1, 
+		               averages, 
+			       std_devs, 
+			       cols)
+df4_gut_de_norm_summary = df4_gut_de_norm.summary()
+df4_gut_de_norm_summary.toPandas().to_csv('df4_gut_de-norm_summary.csv')
+
+
 
 
 # Cosine Similarity
