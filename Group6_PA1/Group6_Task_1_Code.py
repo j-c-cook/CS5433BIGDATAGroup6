@@ -1,6 +1,7 @@
 # Group 6 Task 1 Code
 # Tuesday, April 13, 2021
 
+
 """
 This file must be executed using `spark-submit`:
 
@@ -97,7 +98,6 @@ df2 = _df.distinct()
 df2.toPandas().to_csv('Suburb-Property_count.csv')
 # There are 312 rows in 'Suburb.csv' and 'Suburb-Property_count.csv'
 
-
 # ---------------------------------------------------------------------
 # Modify the columns containing strings to contain numbers
 # ---------------------------------------------------------------------
@@ -130,12 +130,20 @@ df3.printSchema()
 # ---------------------------------------------------------------------
 # Create a new seperated dataframe that contain out of range values
 # ---------------------------------------------------------------------
+# The out of range values are 'null' and numeric values less than 0
 
-# TODO: Do Govardhan or Thomas have this
+# Find the null values
+df_null = df3.where(reduce(lambda x, y: x | y, (f.col(x).isNull() \
+                 for x in df.columns)))
 
-# Determine what are "out of range" values
-df3.where(reduce(lambda x, y: x | y, (f.col(x).isNull() \
-                 for x in df.columns))).show()
+# Find the values that are less than 0
+df_leq_0 = df3.where(reduce(lambda x, y: x | y, (f.col(x) < 0 \
+                 for x in df.columns)))
+
+# Combine the null and less than 0 rows into one mal dataframe
+df4 = df_null.union(df_leq_0)
+print('The mal-dataframe')
+df4.show()
 
 # ---------------------------------------------------------------------
 # Normalize the dataframe that contains good values
@@ -150,7 +158,6 @@ df3.where(reduce(lambda x, y: x | y, (f.col(x).isNull() \
 # ---------------------------------------------------------------------
 # Merge dataframes back and de-normalize
 # ---------------------------------------------------------------------
-
 
 
 # Cosine Similarity
