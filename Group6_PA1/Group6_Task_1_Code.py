@@ -19,7 +19,10 @@ The following is a list of the tasks performed in this file in order:
   * The columns of type string are analyzed to see if there is any
     foul data
 - The string values in the dataset are replaced with numeric values
-
+- The dataframe is split into two dataframes
+  * "mal" the bad dataframe contains null and less than 0 values
+  * "gut" the good dataframe contains values that are okay for cosine
+    similarity
 
 """
 
@@ -82,16 +85,19 @@ print('The number of columns in the dataframe: {}'.format(n_cols))
 # Provide a description of the dataset in the console (print)
 df.printSchema()
 
-# For the string columns, we can take the set of each column to find the unique values
+# For the string columns, we can take the set of each column to find the
+# unique values
 str_cols = ['Suburb', 'Type', 'Region_name']
 
-# export each column containing type string to a csv by the name of that column
+# export each column containing type string to a csv by the name of that
+# column
 for i in range(len(str_cols)):
 	str_col = str_cols[i]
 	_df = df.select(str_col)
 	df2 = _df.distinct()
 	df2.toPandas().to_csv('{}.csv'.format(str_cols[i]))
-# The Property_count is of type integer, and appears to be the same at each suburb
+# The Property_count is of type integer, and appears to be the same at
+# each suburb
 # Find the the distincts of 'Suburb' and 'Property_count'
 _df = df.select('Suburb', 'Property_count')
 df2 = _df.distinct()
@@ -105,7 +111,8 @@ df2.toPandas().to_csv('Suburb-Property_count.csv')
 # Index string columns to give them a numeric value from 0->n
 # https://stackoverflow.com/a/65849758/11637415
 # the index of the string values in the columns
-indexers = [StringIndexer(inputCol=c, outputCol='{0}_indexed'.format(c)) for c in str_cols]
+indexers = [StringIndexer(inputCol=c, outputCol='{0}_indexed'.\
+			  format(c)) for c in str_cols]
 
 # Create a new dataframe with the string columns indexed
 pipeline = Pipeline(stages=indexers)
@@ -141,9 +148,29 @@ df_leq_0 = df3.where(reduce(lambda x, y: x | y, (f.col(x) < 0 \
                  for x in df.columns)))
 
 # Combine the null and less than 0 rows into one mal dataframe
-df4 = df_null.union(df_leq_0)
+df4_mal = df_null.union(df_leq_0)
 print('The mal-dataframe')
-df4.show()
+df4_mal.show()
+n_rows_mal = df4_mal.count()
+
+# Create a good ("gut") dataframe
+# Find the NOT null values
+df_not_null = df3.where(reduce(lambda x, y: x | y, \
+			       (f.col(x).isNotNull() \
+                                for x in df.columns)))
+
+# Find the values that are less than 0
+df_geq_0 = df3.where(reduce(lambda x, y: x | y, (f.col(x) >= 0 \
+                 for x in df.columns)))
+
+
+df4_gut = df_not_null.union(df_geq_0)
+n_rows_gut = df4_gut.count()
+
+# Check to make sure we haven't lost any rows
+total_rows = n_rows_mal + n_rows_gut
+print('The total rows in the good and bad dataframes are: {}'.\
+						    format(total_rows))
 
 # ---------------------------------------------------------------------
 # Normalize the dataframe that contains good values
