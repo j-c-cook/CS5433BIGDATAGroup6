@@ -141,31 +141,33 @@ df3.printSchema()
 
 # Find the null values
 df_null = df3.where(reduce(lambda x, y: x | y, (f.col(x).isNull() \
-                 for x in df.columns)))
-
+                           for x in df3.columns)))
+print('The number of rows containing null values: {}'.\
+       format(df_null.count()))
 # Find the values that are less than 0
 df_leq_0 = df3.where(reduce(lambda x, y: x | y, (f.col(x) < 0 \
-                 for x in df.columns)))
-
+                            for x in df3.columns)))
+print('The number of rows containing < 0: {}'.\
+      format(df_leq_0.count()))
 # Combine the null and less than 0 rows into one mal dataframe
 df4_mal = df_null.union(df_leq_0)
 print('The mal-dataframe')
 df4_mal.show()
 n_rows_mal = df4_mal.count()
+print('Total number of mal rows: {}'.format(n_rows_mal))
 
 # Create a good ("gut") dataframe
-# Find the NOT null values
-df_not_null = df3.where(reduce(lambda x, y: x | y, \
-			       (f.col(x).isNotNull() \
-                                for x in df.columns)))
+# Drop rows in the dataframe that contain NULL values
+df_not_null = df3.dropna()
 
-# Find the values that are less than 0
-df_geq_0 = df3.where(reduce(lambda x, y: x | y, (f.col(x) >= 0 \
-                 for x in df.columns)))
+print('Not null count: {}'.format(df_not_null.count()))
 
+# Remove all values that are less than 0
+# https://stackoverflow.com/a/64530760/11637415
+df4_gut = df_not_null.exceptAll(df_leq_0)
 
-df4_gut = df_not_null.union(df_geq_0)
 n_rows_gut = df4_gut.count()
+print('Good dataframe count: {}'.format(n_rows_gut))
 
 # Check to make sure we haven't lost any rows
 total_rows = n_rows_mal + n_rows_gut
