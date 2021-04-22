@@ -1,6 +1,10 @@
 # Group 6 Task 1 Code
 # Tuesday, April 13, 2021
 
+# Jack Cook
+# Thomas Okonkwo
+# Govardhan Digumurthi
+
 
 """
 This file must be executed using `spark-submit`:
@@ -295,22 +299,47 @@ print('cosine similarity: {}'.format(b))
 # Get column names from good dataframe
 example_cols = df4_gut.schema.names
 
-# Create an indexing column by name "id"
-# https://stackoverflow.com/a/37490920/11637415
-df_example = df4_gut.withColumn('id', 
-				f.monotonically_increasing_id())
+def indexing_function(df, col_name='id'):
+	# Create an indexing column by name "id"
+	# https://stackoverflow.com/a/37490920/11637415
+	return df.withColumn(col_name, f.monotonically_increasing_id())
 
-# Create vectors based on column list
-vecAssembler = VectorAssembler(inputCols=cols, 
-			       outputCol='Vector', 
-			       handleInvalid='keep')
+df_example = indexing_function(df4_gut, col_name='id')
 
-df_example = vecAssembler.transform(df_example)
+def vector_assemble_function(df, inputCols, outputCol='Vector'):
+	"""
+	Assemble the given columns into a column named 'vector'
 
-# https://stackoverflow.com/a/64588611/11637415
-f1 = df_example.filter(col('id') == 0).select('Vector').head()[0]
+	inputCols : list
+		a list of the input columns
+	outputCol : string
+		a string defining the column where the vector will be
+		stored
+	"""
+	# Create vectors based on column list
+	vecAssembler = VectorAssembler(inputCols=inputCols, 
+			               outputCol=outputCol, 
+			               handleInvalid='keep')
+	df = vecAssembler.transform(df)
+	return df
+
+df_example = vector_assemble_function(df_example, 
+				      example_cols, 
+				      outputCol='Vector')
+
+def select_cell_by_id(df, id_num, col_name='Vector'):
+	"""
+	col_name : string
+		The name of the column to select from
+	id_num : int
+		The id by row to select
+	"""
+	# https://stackoverflow.com/a/64588611/11637415
+	return df.filter(col('id') == id_num).select(col_name).head()[0]
+f1 = select_cell_by_id(df_example, 0, col_name='Vector')
 print(f1)
 
+# TODO: make function for this
 df_example = df_example.withColumn('coSim', \
                             udf(cos_sim, FloatType())\
                             (f.col('Vector'), \
