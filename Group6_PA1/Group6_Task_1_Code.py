@@ -37,6 +37,7 @@ from pyspark.ml.linalg import Vectors
 import pyspark.sql.functions as f
 from functools import reduce
 from pyspark.sql.functions import udf
+import numpy as np
 
 
 # ---------------------------------------------------------------------
@@ -255,13 +256,66 @@ def de_normalize(df, averages, std_devs, columns):
 # Use cosine similarity to replace bad values in mal dataframes
 # ---------------------------------------------------------------------
 
+# http://grahamflemingthomson.com/cosine-similarity-spark/
+# write user defined function for cosine similarity
+def cos_sim(a, b):
+        return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+
 # ---------------------------------------------------------------------
 # --------------------------- Examples --------------------------------
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
+# Simple cosine similarity
+# ---------------------------------------------------------------------
+
+def cosine_similarity(v1, v2):
+	return v1.dot(v2) / (v1.norm(2) * v2.norm(2))
+
+# https://stackoverflow.com/a/46751471/11637415
+# Example of low cosine similarity
+x = Vectors.dense([1, 2, 3])
+y = Vectors.dense([9, 8, 4])
+
+a = cosine_similarity(x, y)
+
+print('cosine similarity: {}'.format(a))
+
+# Example of high cosine similarity
+
+b = cosine_similarity(x, x)
+
+print('cosine similarity: {}'.format(b))
+
+# ---------------------------------------------------------------------
 # Cosine similarity without normalization
 # ---------------------------------------------------------------------
+
+# Get column names from good dataframe
+example_cols = df4_gut.schema.names
+
+# Create an indexing column by name "id"
+# https://stackoverflow.com/a/37490920/11637415
+df_example = df4_gut.withColumn('id', 
+				f.monotonically_increasing_id())
+
+# Create vectors based on column list
+vecAssembler = VectorAssembler(inputCols=cols, 
+			       outputCol='Vector', 
+			       handleInvalid='keep')
+
+df_example = vecAssembler.transform(df_example)
+
+# https://stackoverflow.com/a/64588611/11637415
+f1 = df_example.filter(col('id') == 0).select('Vector').head()[0]
+print(f1)
+
+df_example = df_example.withColumn('coSim', \
+                            udf(cos_sim, FloatType())\
+                            (f.col('Vector'), \
+                             f.array([f.lit(v) for v in f1])))
+df_example.toPandas().to_csv('coSim_no_norm.csv')
 
 # ---------------------------------------------------------------------
 # Cosine similarity with normalization
@@ -301,8 +355,6 @@ df4_gut_de_norm_summary = df4_gut_de_norm.summary()
 df4_gut_de_norm_summary.toPandas().to_csv('df4_gut_de-norm_summary.csv')
 
 
-
-
 # Cosine Similarity
 # https://stackoverflow.com/a/46764347/11637415
 from pyspark.ml.feature import HashingTF, IDF
@@ -330,59 +382,14 @@ def cos_sim(a, b):
 
 from pyspark.ml.linalg import Vectors
 
-def cosine_similarity(v1, v2):
-	return 1 - v1.dot(v2) / (v1.norm(2) * v2.norm(2))
-
-# https://stackoverflow.com/a/46751471/11637415
-# Example of low cosine similarity
-x = Vectors.dense([1, 2, 3])
-y = Vectors.dense([9, 8, 4])
-
-a = cosine_similarity(x, y)
-
-print('cosine similarity: {}'.format(a))
-
-# Example of high cosine similarity
-
-b = cosine_similarity(x, x)
-
-print('cosine similarity: {}'.format(b))
-
 # https://stackoverflow.com/a/49832957/11637415
 
-cols = df3.schema.names
 
 from pyspark.ml.feature import VectorAssembler
-vecAssembler = VectorAssembler(inputCols=cols, outputCol='Vector', handleInvalid='keep')
-df4 = vecAssembler.transform(df3)
-df4.toPandas().to_csv('data_w_vectors.csv')
 
 # pipeline = Pipeline(stages=vecAssem)
 # df4 = pipeline.fit(df3).transform(df3)
 # vecAssem.toPandas().to_csv('file.csv')
-
-# Create an indexing column
-# https://stackoverflow.com/a/37490920/11637415
-from pyspark.sql.functions import monotonically_increasing_id
-
-df4 = df4.withColumn('id', monotonically_increasing_id())
-df4.toPandas().to_csv('df4.csv')
-
-
-# https://stackoverflow.com/a/52819758/11637415
-df5 = df4.where(col('id').between(0, 0))
-df5.show()
-
-# https://stackoverflow.com/a/64588611/11637415
-df6 = df5.select('Vector')
-f1 = df4.filter(col('id') == 0).select('Vector').head()[0]
-print(f1)
-
-from pyspark.sql.functions import lit, array
-
-df7 = df4.withColumn('coSim', udf(cos_sim, FloatType())(col('Vector'), array([lit(v) for v in f1])))
-
-df7.toPandas().to_csv('df7.csv')
 
 # https://stackoverflow.com/a/46764347/11637415
 # Compute L2 Normalization of each column
@@ -392,20 +399,20 @@ from pyspark.ml.feature import VectorAssembler
 
 cols = df3.schema.names
 # Iterating over columns to be scaled
-for i in cols:
+# for i in cols:
     # VectorAssembler Transformation - Converting column to vector type
-    assembler = VectorAssembler(inputCols=[i],outputCol=i+"_Vect")
+    # assembler = VectorAssembler(inputCols=[i],outputCol=i+"_Vect")
 
     # MinMaxScaler Transformation
-    scaler = MinMaxScaler(inputCol=i+"_Vect", outputCol=i+"_Scaled")
+    # scaler = MinMaxScaler(inputCol=i+"_Vect", outputCol=i+"_Scaled")
 
     # Pipeline of VectorAssembler and MinMaxScaler
-    pipeline = Pipeline(stages=[assembler, scaler])
+    # pipeline = Pipeline(stages=[assembler, scaler])
 
     # Fitting pipeline on dataframe
-    df3 = pipeline.fit(df3).transform(df3).withColumn(i+"_Scaled", unlist(i+"_Scaled")).drop(i+"_Vect")
+    # df3 = pipeline.fit(df3).transform(df3).withColumn(i+"_Scaled", unlist(i+"_Scaled")).drop(i+"_Vect")
 
-df3.toPandas().to_csv('df3.csv')
+# df3.toPandas().to_csv('df3.csv')
 
 
 
