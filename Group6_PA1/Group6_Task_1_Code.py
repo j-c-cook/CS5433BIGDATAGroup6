@@ -44,8 +44,16 @@ from pyspark.sql.functions import udf
 import numpy as np
 
 
+def pb(sentance):
+	# Provide a print break for console
+	print(71 * '-')
+	print(sentance)
+	print(71 * '-')
+	return
+
+
 # ---------------------------------------------------------------------
-# Spark Configuration setup
+pb('Spark Configuration setup')
 # ---------------------------------------------------------------------
 
 # Give the spark configuration
@@ -56,7 +64,7 @@ sc.setLogLevel("WARN")
 sqlsc = SQLContext(sc)
 
 # ---------------------------------------------------------------------
-# Read csv file in from command line to dataframe
+pb('Read csv file in from command line to dataframe')
 # ---------------------------------------------------------------------
 
 # get the file location from the command line arg
@@ -77,7 +85,7 @@ df = sqlsc.read.format(file_type)\
 	.load(file_location)
 
 # ---------------------------------------------------------------------
-# Analyze the dataframe to understand and describe data set
+pb('Analyze the dataframe to understand and describe data set')
 # ---------------------------------------------------------------------
 
 # Get the number of rows in the dataframe
@@ -110,7 +118,7 @@ df2.toPandas().to_csv('Suburb-Property_count.csv')
 # There are 312 rows in 'Suburb.csv' and 'Suburb-Property_count.csv'
 
 # ---------------------------------------------------------------------
-# Modify the columns containing strings to contain numbers
+pb('Modify the columns containing strings to contain numbers')
 # ---------------------------------------------------------------------
 
 # Index string columns to give them a numeric value from 0->n
@@ -140,7 +148,7 @@ df3.printSchema()
 # WORKING WITH DF3 NOW
 
 # ---------------------------------------------------------------------
-# Create a new seperated dataframe that contain out of range values
+pb('Create a new seperated dataframe that contain out of range values')
 # ---------------------------------------------------------------------
 # The out of range values are 'null' and numeric values less than 0
 
@@ -180,11 +188,11 @@ print('The total rows in the good and bad dataframes are: {}'.\
 						    format(total_rows))
 
 # ---------------------------------------------------------------------
-# Normalize the dataframe that contains good values
+pb('Normalize the dataframe that contains good values')
 # ---------------------------------------------------------------------
 def normalize_formula(df, averages, std_devs, column):
 	# norm = [(X - mean) / std_dev]
-	df = df.withColumn(column, \
+	df = df.withColumn(column + '_norm', \
                           ((df[column] - averages[column]) \
                             / std_devs[column + '_stddev']))
 	return df
@@ -248,7 +256,7 @@ def normalize(train_df, test_df, columns):
 	return train_df, test_df, averages, std_devs
 
 # ---------------------------------------------------------------------
-# Use cosine similarity to replace bad values in mal dataframes
+pb('Use cosine similarity to replace bad values in mal dataframes')
 # ---------------------------------------------------------------------
 
 # http://grahamflemingthomson.com/cosine-similarity-spark/
@@ -271,11 +279,11 @@ def compute_cosine_similarity(df, single_vector, inputCol='Vector',
 
 
 # ---------------------------------------------------------------------
-# --------------------------- Examples --------------------------------
+pb('--------------------------- Examples ----------------------------')
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
-# Simple cosine similarity
+pb('Simple cosine similarity')
 # ---------------------------------------------------------------------
 
 def cosine_similarity(v1, v2):
@@ -297,7 +305,7 @@ b = cosine_similarity(x, x)
 print('cosine similarity: {}'.format(b))
 
 # ---------------------------------------------------------------------
-# Cosine similarity without normalization
+pb('Cosine similarity without normalization')
 # ---------------------------------------------------------------------
 
 # Get column names from good dataframe
@@ -344,15 +352,82 @@ f1 = select_cell_by_id(df_example, 0, col_name='Vector')
 print(f1)
 
 df_example = compute_cosine_similarity(df_example, f1)
-df_example.toPandas().to_csv('coSim_no_norm.csv')
+
+df_coSim = df_example.select(f.col('coSim'))
+df_coSim.summary('count', 'min', 'stddev', 'max').show()
+
+def find_row_max(df, colName='coSim'):
+	"""
+	Return the row in which the max value in the given column name 
+	occurs.
+	"""
+	maxVal = df.agg(f.max(colName)).collect()[0][0]
+	row = df.filter(f.col(colName) == maxVal).first()
+	return row, maxVal
+
+row_1, max_coSim = find_row_max(df_example, colName='coSim')
+
+print('A max cosine similarity of {} was found in row {}'.\
+						   format(max_coSim, 
+						          row_1['id']))
 
 # ---------------------------------------------------------------------
-# Cosine similarity with normalization
+pb('Cosine similarity with normalization')
 # ---------------------------------------------------------------------
 
-# TODO: normalize a column in a dataframe
+df = indexing_function(df4_gut)
 
+# get column names
+col_names = df.schema.names
 
+# get all columns but the "id"
+col_names = [col_names[i] for i in range(len(col_names)) \
+	     if col_names[i] != 'id']
+
+# Get normalization statistics
+averages, std_devs = compute_normalization_statistics(df, 
+						      col_names)
+# Apply normalizatin statistics and compute normalization of df
+df = normalize_for_each_column(df, col_names, averages, std_devs)
+
+# Assemble a column of vectors from the '_norm' columns
+col_names_vectors = [col_names[i] + '_norm' \
+                     for i in range(len(col_names))]
+df = vector_assemble_function(df, col_names_vectors)
+
+# pull out vector from row 0
+f1 = select_cell_by_id(df, 0, col_name='Vector')
+
+# compute the cosine similarity between the vector and all rows
+df = compute_cosine_similarity(df, f1)
+
+# select only the coSim column and display statistics
+df_coSim = df.select(f.col('coSim'))
+df_coSim.summary('count', 'min', 'stddev', 'max').show()
+
+row, max_coSim = find_row_max(df, colName='coSim')
+
+print('A max cosine similarity of {} was found in row {}'.\
+                                                   format(max_coSim, 
+                                                          row_1['id']))
+
+# ---------------------------------------------------------------------
+pb('Statistics of dataframe before and after normalization')
+# ---------------------------------------------------------------------
+print('Look at statistics for good dataframe before and after' 
+      ' normalization')
+output_file_name = 'df_gut_summary.csv'
+print('Dataframe (gut) summary exported to {}'.\
+			format(output_file_name))
+_df = df.select(*col_names)
+_df.summary('count', 'min', 'stddev', 'max', 'mean').toPandas().\
+			                     to_csv(output_file_name)
+output_file_name = 'df_gut_normalized_summary.csv'
+print('Dataframe (gut normalized) summary exported to {}'.\
+                        format(output_file_name))
+_df = df.select(*col_names_vectors)
+_df.summary('count', 'min', 'stddev', 'max', 'mean').toPandas().\
+				 	     to_csv(output_file_name)
 
 
 # Cosine Similarity
