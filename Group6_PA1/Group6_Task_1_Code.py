@@ -276,6 +276,10 @@ def vector_assemble_function(df, inputCols, outputCol='Vector'):
 		a string defining the column where the vector will be
 		stored
 	"""
+	# if outputCol already exists in dataframe, remove it
+	if outputCol in df.columns:
+		df = df.drop(outputCol)
+
 	# Create vectors based on column list
 	vecAssembler = VectorAssembler(inputCols=inputCols, 
 			               outputCol=outputCol, 
@@ -320,6 +324,10 @@ def compute_cosine_similarity(df, single_vector, inputCol='Vector',
 	Compute the cosine similarity of a single vector versus a 
 	column containing vectors in a dataframe.
 	"""
+	# Remove the coSim column if it already exits
+	if outputCol in df.columns:
+		df = df.drop(outputCol)
+
 	df = df.withColumn('coSim', udf(cos_sim, FloatType())\
 			   (f.col('Vector'), f.array([f.lit(v) \
                                              for v in single_vector])))
@@ -330,7 +338,7 @@ pb('Use cosine similarity to replace bad values in mal dataframes')
 # ---------------------------------------------------------------------
 
 # Give gut and mal dataframes an id column
-df4_gut = indexing_function(df4_gut, col_name='id')
+df4_gut_mod = indexing_function(df4_gut, col_name='id')
 df4_mal = indexing_function(df4_mal, col_name='id')
 
 df4_mal.show()
@@ -344,12 +352,8 @@ col_names = [col_names[i] for i in range(len(col_names)) \
 print(col_names)
 
 # Get normalization statistics from gut dataframe
-averages, std_devs = compute_normalization_statistics(df4_gut, 
+averages, std_devs = compute_normalization_statistics(df4_gut_mod, 
 						      col_names)
-
-# Apply normalizatin statistics and compute normalization of df
-df4_gut = normalize_for_each_column(df4_gut, col_names, 
-                                    averages, std_devs)
 
 def find_similar(row, col_names):
 	bad_col = None
@@ -357,29 +361,15 @@ def find_similar(row, col_names):
 	idx = row['id']
 	for j in range(len(col_names)):
 		a = row[col_names[j]]
-		bad_val = a
 		a_type = type(a)
 		if a_type is float:
 			if a < 0:
 				bad_col = col_names[j]
+				bad_val = a
 		elif a_type is type(None):
 			bad_col = col_names[j]
+			bad_val = a
 	return bad_col, bad_val, idx
-
-from pyspark.sql import Row
-
-def function(row):
-	# row.id = 10
-	print(row.id)
-
-	# to modify a row
-	row = row.asDict()
-	row['id'] = 10
-	return Row(**row)
-
-df4_mal.foreach(function)
-
-df4_mal.show()
 
 bad_columns = []
 indices = []
@@ -396,15 +386,70 @@ for row in df4_mal.rdd.collect():
 
 print(list(zip(indices, bad_columns)))
 
+def find_cosine_similarity_replacement(df_gut, df_mal, mal_col, idx, mal_val, averages, std_devs):
+	
+	# Assemble columns to be used in normalization
+	columns_for_norm = [col_names[i] for i in range(len(col_names)) if col_names[i] != bad_col]
+	
+	# Apply normalizatin statistics and compute normalization of df
+	df_gut = normalize_for_each_column(df_gut, columns_for_norm, 
+                                    averages, std_devs)
+	# Select the columns for normalization and the "id" in the mal df
+	#df_mal = df_mal.select(*columns_for_norm, 'id')
+	# Apply normalization statistics to mal column
+	df_mal = normalize_for_each_column(df_mal, columns_for_norm,
+					     averages, std_devs)
+
+	# Assemble a column of vectors from the '_norm' columns
+	col_names_vectors = [columns_for_norm[i] + '_norm' \
+                     for i in range(len(columns_for_norm))]
+	# Create a column of vectors that don't include the bad column
+	df_gut = vector_assemble_function(df_gut, col_names_vectors)
+	# Assemble vector for mal df
+	df_mal = vector_assemble_function(df_mal, col_names_vectors)
+	# Select the vector in the indexed row from the mal df
+	f1 = select_cell_by_id(df_mal, idx, col_name='Vector')
+	# Compute the cosine similarity between the vector and all rows
+	df_gut = compute_cosine_similarity(df_gut, f1)
+	
+	# Find index where the cosine similarity is maximum
+	row, max_coSim = find_row_max(df_gut, colName='coSim')
+	row_idx = row['id']
+	# print('row: {}\tmax_coSim: {}'.format(row, max_coSim))
+	# df4_gut_mod.toPandas().to_csv('df4_gut_tmp.csv')
+	new_value = select_cell_by_id(df_gut, row_idx, col_name=bad_col)	
+	return new_value, row_idx
+	
+
+
+
 bad_col = bad_columns[0]
 idx = indices[0]
 mal_val = mal_vals[0]
-print(mal_val)
+print(mal_vals)
 
-t = (f.when(f.col('id') == idx, 1.0))
+new_value, row_idx = find_cosine_similarity_replacement(df4_gut_mod, df4_mal, bad_col, idx, mal_val, averages, std_devs)
 
-df4_fixed_0 = df4_mal.filter(df4_mal['id'] == idx).withColumn(bad_col, t)
-df4_fixed_0.show()
+print('({}, {})\t{}\t({}, {})'.format(idx, bad_col, mal_val, row_idx, new_value))
+
+t = (f.when(f.col('id') == idx, new_value))
+
+df4_fixed = df4_mal.filter(df4_mal['id'] == idx).withColumn(bad_col, t)
+
+for i in range(1, len(bad_columns)):
+	bad_col = bad_columns[i]
+	idx = indices[i]
+	mal_val = mal_vals[i]
+
+	new_value, row_idx = find_cosine_similarity_replacement(df4_gut_mod, df4_mal, bad_col, idx, mal_val, averages, std_devs)
+
+	print('({}, {})\t{}\t({}, {})'.format(idx, bad_col, mal_val, row_idx, new_value))
+
+	t = (f.when(f.col('id') == idx, new_value))
+	df4_fixed_i = df4_mal.filter(df4_mal['id'] == idx).withColumn(bad_col, t)
+	df4_fixed = df4_fixed.union(df4_fixed_i)
+
+df4_fixed.show()
 
 # ---------------------------------------------------------------------
 pb('Combine good and previously bad dataframe for export')
