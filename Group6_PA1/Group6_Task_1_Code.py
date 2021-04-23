@@ -163,7 +163,7 @@ df_leq_0 = df3.where(reduce(lambda x, y: x | y, (f.col(x) < 0 \
 print('The number of rows containing < 0: {}'.\
       format(df_leq_0.count()))
 # Combine the null and less than 0 rows into one mal dataframe
-df4_mal = df_null.union(df_leq_0)
+df4_mal = df_null.unionAll(df_leq_0)
 print('The mal-dataframe')
 df4_mal.show()
 n_rows_mal = df4_mal.count()
@@ -188,7 +188,7 @@ print('The total rows in the good and bad dataframes are: {}'.\
 						    format(total_rows))
 
 # ---------------------------------------------------------------------
-pb('Normalize the dataframe that contains good values')
+pb('Define functions for normalizing a dataframe')
 # ---------------------------------------------------------------------
 def normalize_formula(df, averages, std_devs, column):
 	# norm = [(X - mean) / std_dev]
@@ -255,8 +255,57 @@ def normalize(train_df, test_df, columns):
 
 	return train_df, test_df, averages, std_devs
 
+
 # ---------------------------------------------------------------------
-pb('Use cosine similarity to replace bad values in mal dataframes')
+pb('Define useful re-usable functions for accessing dataframes')
+# ---------------------------------------------------------------------
+
+def indexing_function(df, col_name='id'):
+	# Create an indexing column by name "id"
+	# https://stackoverflow.com/a/37490920/11637415
+	return df.withColumn(col_name, f.monotonically_increasing_id())
+
+
+def vector_assemble_function(df, inputCols, outputCol='Vector'):
+	"""
+	Assemble the given columns into a column named 'vector'
+
+	inputCols : list
+		a list of the input columns
+	outputCol : string
+		a string defining the column where the vector will be
+		stored
+	"""
+	# Create vectors based on column list
+	vecAssembler = VectorAssembler(inputCols=inputCols, 
+			               outputCol=outputCol, 
+			               handleInvalid='keep')
+	df = vecAssembler.transform(df)
+	return df
+
+
+def select_cell_by_id(df, id_num, col_name='Vector'):
+	"""
+	col_name : string
+		The name of the column to select from
+	id_num : int
+		The id by row to select
+	"""
+	# https://stackoverflow.com/a/64588611/11637415
+	return df.filter(col('id') == id_num).select(col_name).head()[0]
+
+
+def find_row_max(df, colName='coSim'):
+	"""
+	Return the row in which the max value in the given column name 
+	occurs.
+	"""
+	maxVal = df.agg(f.max(colName)).collect()[0][0]
+	row = df.filter(f.col(colName) == maxVal).first()
+	return row, maxVal
+
+# ---------------------------------------------------------------------
+pb('Define functions for computing cosine similarity')
 # ---------------------------------------------------------------------
 
 # http://grahamflemingthomson.com/cosine-similarity-spark/
@@ -276,6 +325,90 @@ def compute_cosine_similarity(df, single_vector, inputCol='Vector',
                                              for v in single_vector])))
 	return df
 
+# ---------------------------------------------------------------------
+pb('Use cosine similarity to replace bad values in mal dataframes')
+# ---------------------------------------------------------------------
+
+# Give gut and mal dataframes an id column
+df4_gut = indexing_function(df4_gut, col_name='id')
+df4_mal = indexing_function(df4_mal, col_name='id')
+
+df4_mal.show()
+
+# get column names
+col_names = df4_gut.schema.names
+
+# get all columns but the "id"
+col_names = [col_names[i] for i in range(len(col_names)) \
+	     if col_names[i] != 'id']
+print(col_names)
+
+# Get normalization statistics from gut dataframe
+averages, std_devs = compute_normalization_statistics(df4_gut, 
+						      col_names)
+
+# Apply normalizatin statistics and compute normalization of df
+df4_gut = normalize_for_each_column(df4_gut, col_names, 
+                                    averages, std_devs)
+
+def find_similar(row, col_names):
+	bad_col = None
+	bad_val = None
+	idx = row['id']
+	for j in range(len(col_names)):
+		a = row[col_names[j]]
+		bad_val = a
+		a_type = type(a)
+		if a_type is float:
+			if a < 0:
+				bad_col = col_names[j]
+		elif a_type is type(None):
+			bad_col = col_names[j]
+	return bad_col, bad_val, idx
+
+from pyspark.sql import Row
+
+def function(row):
+	# row.id = 10
+	print(row.id)
+
+	# to modify a row
+	row = row.asDict()
+	row['id'] = 10
+	return Row(**row)
+
+df4_mal.foreach(function)
+
+df4_mal.show()
+
+bad_columns = []
+indices = []
+mal_vals = []
+
+for row in df4_mal.rdd.collect():
+	bad_col, mal_val, idx = find_similar(row, col_names)
+	if type(bad_col) is type(None):
+		pass
+	else:
+		bad_columns.append(bad_col)
+		indices.append(idx)
+		mal_vals.append(mal_val)
+
+print(list(zip(indices, bad_columns)))
+
+bad_col = bad_columns[0]
+idx = indices[0]
+mal_val = mal_vals[0]
+print(mal_val)
+
+t = (f.when(f.col('id') == idx, 1.0))
+
+df4_fixed_0 = df4_mal.filter(df4_mal['id'] == idx).withColumn(bad_col, t)
+df4_fixed_0.show()
+
+# ---------------------------------------------------------------------
+pb('Combine good and previously bad dataframe for export')
+# ---------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------
@@ -311,43 +444,12 @@ pb('Cosine similarity without normalization')
 # Get column names from good dataframe
 example_cols = df4_gut.schema.names
 
-def indexing_function(df, col_name='id'):
-	# Create an indexing column by name "id"
-	# https://stackoverflow.com/a/37490920/11637415
-	return df.withColumn(col_name, f.monotonically_increasing_id())
-
 df_example = indexing_function(df4_gut, col_name='id')
-
-def vector_assemble_function(df, inputCols, outputCol='Vector'):
-	"""
-	Assemble the given columns into a column named 'vector'
-
-	inputCols : list
-		a list of the input columns
-	outputCol : string
-		a string defining the column where the vector will be
-		stored
-	"""
-	# Create vectors based on column list
-	vecAssembler = VectorAssembler(inputCols=inputCols, 
-			               outputCol=outputCol, 
-			               handleInvalid='keep')
-	df = vecAssembler.transform(df)
-	return df
 
 df_example = vector_assemble_function(df_example, 
 				      example_cols, 
 				      outputCol='Vector')
 
-def select_cell_by_id(df, id_num, col_name='Vector'):
-	"""
-	col_name : string
-		The name of the column to select from
-	id_num : int
-		The id by row to select
-	"""
-	# https://stackoverflow.com/a/64588611/11637415
-	return df.filter(col('id') == id_num).select(col_name).head()[0]
 f1 = select_cell_by_id(df_example, 0, col_name='Vector')
 print(f1)
 
@@ -355,15 +457,6 @@ df_example = compute_cosine_similarity(df_example, f1)
 
 df_coSim = df_example.select(f.col('coSim'))
 df_coSim.summary('count', 'min', 'stddev', 'max').show()
-
-def find_row_max(df, colName='coSim'):
-	"""
-	Return the row in which the max value in the given column name 
-	occurs.
-	"""
-	maxVal = df.agg(f.max(colName)).collect()[0][0]
-	row = df.filter(f.col(colName) == maxVal).first()
-	return row, maxVal
 
 row_1, max_coSim = find_row_max(df_example, colName='coSim')
 
