@@ -27,6 +27,12 @@ The following is a list of the tasks performed in this file in order:
   * "mal" the bad dataframe contains null and less than 0 values
   * "gut" the good dataframe contains values that are okay for cosine
     similarity
+- Cosine similarity is used to replace the bad cells with similar
+  values
+  * Note: Normalization is necessary for good results from cosine
+  similarity
+- The fixed datafame is merged into the good dataframe and is exported
+  to a file
 
 The following are the examples listed at the bottom in order:
 
@@ -460,7 +466,7 @@ df4_fixed.show()
 # ---------------------------------------------------------------------
 pb('Combine good and previously bad dataframe for export')
 # ---------------------------------------------------------------------
-output_file_name = 'Housing_data-Final-3.csv'
+output_file_name = 'Group6_Task_1_Output.csv'
 
 print('Combine the good and corrected dataframe into one...')
 
