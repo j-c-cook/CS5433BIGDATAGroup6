@@ -460,7 +460,19 @@ df4_fixed.show()
 # ---------------------------------------------------------------------
 pb('Combine good and previously bad dataframe for export')
 # ---------------------------------------------------------------------
+output_file_name = 'Housing_data-Final-3.csv'
 
+print('Combine the good and corrected dataframe into one...')
+
+df5 = df4_gut.select(*col_names).union(df4_fixed.select(*col_names))
+
+print('The number of rows in the complete dataframe is: {}'.\
+       format(df5.count()))
+
+print('The complete dataframe is ouptut to file: {}'.\
+	format(output_file_name))
+
+df5.toPandas().to_csv(output_file_name)
 
 # ---------------------------------------------------------------------
 pb('--------------------------- Examples ----------------------------')
@@ -502,7 +514,7 @@ df_example = vector_assemble_function(df_example,
 				      outputCol='Vector')
 
 f1 = select_cell_by_id(df_example, 0, col_name='Vector')
-print('The first row in the data frame to be compared using Cosine '
+print('The first row in the data frame to be compared using Cosine\n'
       'Similarity to all other rows in the data frame.')
 print(f1)
 
@@ -516,6 +528,7 @@ row_1, max_coSim = find_row_max(df_example, colName='coSim')
 print('A max cosine similarity of {} was found in row {}'.\
 						   format(max_coSim, 
 						          row_1['id']))
+df_example.toPandas().to_csv('example_coSim_no_norm.csv')
 
 # ---------------------------------------------------------------------
 pb('Cosine similarity with normalization')
