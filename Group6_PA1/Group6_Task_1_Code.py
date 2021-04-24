@@ -28,6 +28,14 @@ The following is a list of the tasks performed in this file in order:
   * "gut" the good dataframe contains values that are okay for cosine
     similarity
 
+The following are the examples listed at the bottom in order:
+
+- A simple cosine similarity using dense user defined vectors to
+  understand the function
+- Compute cosine similarity of the first row versus all other rows
+  in the data frame
+- Normalize the data then compute cosine similarity of the first row
+  versus all other rows
 """
 
 
@@ -172,8 +180,6 @@ print('Total number of mal rows: {}'.format(n_rows_mal))
 # Create a good ("gut") dataframe
 # Drop rows in the dataframe that contain NULL values
 df_not_null = df3.dropna()
-
-print('Not null count: {}'.format(df_not_null.count()))
 
 # Remove all values that are less than 0
 # https://stackoverflow.com/a/64530760/11637415
@@ -474,13 +480,13 @@ y = Vectors.dense([9, 8, 4])
 
 a = cosine_similarity(x, y)
 
-print('cosine similarity: {}'.format(a))
+print('Cosine Similarity of x and y: {}'.format(a))
 
 # Example of high cosine similarity
 
 b = cosine_similarity(x, x)
 
-print('cosine similarity: {}'.format(b))
+print('Cosine Similarity of x and x: {}'.format(b))
 
 # ---------------------------------------------------------------------
 pb('Cosine similarity without normalization')
@@ -496,6 +502,8 @@ df_example = vector_assemble_function(df_example,
 				      outputCol='Vector')
 
 f1 = select_cell_by_id(df_example, 0, col_name='Vector')
+print('The first row in the data frame to be compared using Cosine '
+      'Similarity to all other rows in the data frame.')
 print(f1)
 
 df_example = compute_cosine_similarity(df_example, f1)
@@ -566,85 +574,3 @@ print('Dataframe (gut normalized) summary exported to {}'.\
 _df = df.select(*col_names_vectors)
 _df.summary('count', 'min', 'stddev', 'max', 'mean').toPandas().\
 				 	     to_csv(output_file_name)
-
-
-# Cosine Similarity
-# https://stackoverflow.com/a/46764347/11637415
-from pyspark.ml.feature import HashingTF, IDF
-# hashingTF = HashingTF(inputCol='Distance', outputCol='Distance_tf')
-# tf = hashingTF.transform(df3)
-
-# idf = IDF(inputCol='Distance_tf', outputCol='feature').fit(tf)
-# ftidf = idf.transorm(tf)
-
-# from pyspark.ml.feature import Normalizer
-# normalizer = Normalizer(inputCol='Distance', outputCol='Distance_norm')
-# data = normalizer.transform(df3)
-
-# http://grahamflemingthomson.com/cosine-similarity-spark/
-# write user defined function for cosine similarity
-import numpy as np
-def cos_sim(a, b):
-	return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
-
-# from pyspark.ml.feature import VectorAssembler
-# vecAssembler = VectorAssembler(inputCols='Price', outputCol='Price_vector')
-# static_array = vecAssembler.transform(df3)
-
-# df4 = df3.withColumn("coSim", udf(cos_sim, FloatType())(col('Price'), array([lit(v) for v in static_array])))
-
-from pyspark.ml.linalg import Vectors
-
-# https://stackoverflow.com/a/49832957/11637415
-
-
-from pyspark.ml.feature import VectorAssembler
-
-# pipeline = Pipeline(stages=vecAssem)
-# df4 = pipeline.fit(df3).transform(df3)
-# vecAssem.toPandas().to_csv('file.csv')
-
-# https://stackoverflow.com/a/46764347/11637415
-# Compute L2 Normalization of each column
-from pyspark.ml.feature import Normalizer
-from pyspark.ml.feature import MinMaxScaler
-from pyspark.ml.feature import VectorAssembler
-
-cols = df3.schema.names
-# Iterating over columns to be scaled
-# for i in cols:
-    # VectorAssembler Transformation - Converting column to vector type
-    # assembler = VectorAssembler(inputCols=[i],outputCol=i+"_Vect")
-
-    # MinMaxScaler Transformation
-    # scaler = MinMaxScaler(inputCol=i+"_Vect", outputCol=i+"_Scaled")
-
-    # Pipeline of VectorAssembler and MinMaxScaler
-    # pipeline = Pipeline(stages=[assembler, scaler])
-
-    # Fitting pipeline on dataframe
-    # df3 = pipeline.fit(df3).transform(df3).withColumn(i+"_Scaled", unlist(i+"_Scaled")).drop(i+"_Vect")
-
-# df3.toPandas().to_csv('df3.csv')
-
-
-
-# from pyspark.ml.feature import VectorSlicer
-
-# slicer = VectorSlicer(inputCol='Vector', outputCol='OneVector', indices=[0])
-
-# output = slicer.transform(df4)
-
-# output.select('Vector', 'OneVector').show()
-
-# rdd = df6.rdd
-
-# cc = rdd.take(1)
-
-# print(cc)
-
-# df7 = df4.withColumn('coSim', udf(cosine_similarity, FloatType())(col('Vector'), df6))
-
-
-# Apply UDF to rows "when"
-# https://stackoverflow.com/a/65823089/11637415
