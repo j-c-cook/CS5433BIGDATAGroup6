@@ -1,3 +1,4 @@
 cd Group6_PA1
-pandoc -V geometry:margin=1in -o Group6_README_1.pdf Group6_README_1.md
+pandoc -V geometry:margin=1in -o Group6_Task_1_README.pdf Group6_Task_1_README.md
 cd ..
+pandoc -V geometry:margin=1in -o Group6_README.pdf Group6_README.md
