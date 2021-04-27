@@ -16,15 +16,25 @@ computation of the correlation coefficient across the dataset.
 The new dataset has schema of the following:
 
  |-- Price: double (nullable = true)
+ 
  |-- Distance: double (nullable = true)
+ 
  |-- Zipcode: double (nullable = true)
+ 
  |-- #Bedroom: double (nullable = true)
+ 
  |-- #Bathroom: double (nullable = true)
+ 
  |-- #-Car Garage: double (nullable = true)
+ 
  |-- Lot_size: double (nullable = true)
+ 
  |-- Property_count: double (nullable = true)
+ 
  |-- Suburb_indexed: double (nullable = true)
+ 
  |-- Type_indexed: double (nullable = true)
+ 
  |-- Region_name_indexed: double (nullable = true)
 
 The field names which has "indexed" appended to it are the field which were string values i.e
