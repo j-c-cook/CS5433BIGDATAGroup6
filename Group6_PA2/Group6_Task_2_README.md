@@ -36,6 +36,7 @@ The new dataset has schema of the following:
  |-- Type_indexed: double (nullable = true)
  
  |-- Region_name_indexed: double (nullable = true)
+ 
 
 The field names which has "indexed" appended to it are the field which were string values i.e
 categorical/discrete values. They were converted and indexed so the computation of correlation
@@ -45,9 +46,14 @@ would be more accurate, instead of removing those fields.
 Spark and pandas was used in this task.
 
 In calculating the correlation coefficient, there are three methods that will be used
-		- Pearson correlation method 	-> using Spark
-		- Spearman correlation method 	-> using Pandas
-		- Kendall correlation method	-> using Pandas
+
+		* Pearson correlation method 	-> using Spark
+
+		* Spearman correlation method 	-> using Pandas
+
+		* Kendall correlation method	-> using Pandas
+
+
 
 Ideally, this task was done using spark and pandas. We used spark for Pearson correlation
 method and pandas for Spearman and Kendall method. This is because Spark doesn't have all
