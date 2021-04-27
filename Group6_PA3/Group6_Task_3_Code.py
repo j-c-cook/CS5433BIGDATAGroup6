@@ -146,6 +146,9 @@ pb('Split the data into training and test sets (80% train)')
 
 (train_df, test_df) = df.randomSplit([0.8, 0.2], 17)
 
+train_df_untouched = train_df
+test_df_untouched = test_df
+
 
 # ---------------------------------------------------------------------
 pb('Create columns containing vectors for parts a) and b)')
@@ -220,8 +223,8 @@ model_B.save(output_B)
 output_train = 'Group6_Task_3_Output_Train.csv'
 output_test = 'Group6_Task_3_Output_Test.csv'
 
-train_df.toPandas().to_csv(output_train)
-test_df.toPandas().to_csv(output_test)
+train_df_untouched.toPandas().to_csv(output_train)
+test_df_untouched.toPandas().to_csv(output_test)
 
 # -------------------------------------------
 # EOF - the following will be moved to task 4
