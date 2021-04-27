@@ -9,10 +9,22 @@
 """
 This file must be executed using `spark-submit`:
 
-bin/spark-submit Group6_Task_1_Code.py path/to/file.csv
+bin/spark-submit Group6_Task_1_Code.py path/to/Group6_Task_1_Output.csv
 
-<<<Provide an overview of the tasks performed in this script>>>
-
+The following is a list in order of what happens in this program:
+- The spark configuration is setup
+- A file path to `Group6_Task_1_Output.csv` is read in from the command
+  line
+- Useful re-usable functions for accessing dataframes are defined
+- The dataframe is randomly split into 80/20 train/test sets
+- Columns of vectors are created that will contain features for the
+  networks:
+  * a) all features in the dataset
+  * b) Only the feature with the highest correlatin as determined in
+       task 2 (specifically #Bedroom)
+- Two random forest regression models are created using the training
+  data
+- The two models and the datasets (training and testing) are exported
 """
 
 
@@ -20,7 +32,8 @@ import sys
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.regression import RandomForestRegressor, \
+RandomForestRegressionModel
 import pyspark.sql.functions as f
 from pyspark.sql.types import IntegerType
 
@@ -75,72 +88,6 @@ df = df.select(*col_names)
 
 
 # ---------------------------------------------------------------------
-pb('Define functions for normalizing a dataframe')
-# ---------------------------------------------------------------------
-def normalize_formula(df, averages, std_devs, column):
-	# norm = [(X - mean) / std_dev]
-	df = df.withColumn(column + '_norm', \
-                          ((df[column] - averages[column]) \
-                            / std_devs[column + '_stddev']))
-	return df
-
-
-def compute_normalization_statistics(df, columns):
-	"""
-	Input a pyspark dataframe, return the averages and standard 
-	deviations for each column.
-	"""
-	# find the mean and standard deviation for each column in
-	# train_df
-	aggExpr = []
-	aggStd = []
-	for column in columns:
-		aggExpr.append(f.mean(df[column]).alias(column))
-		aggStd.append(f.stddev(df[column]).\
-			      alias(column + '_stddev'))
-
-	averages = df.agg(*aggExpr).collect()[0]
-	std_devs = df.agg(*aggStd).collect()[0]
-	return averages, std_devs
-
-def normalize_for_each_column(df, columns, averages, std_devs):
-	"""
-	Loop overa all of the columns and create normalized columns
-	based on the input list of columns.
-	"""
-	# normalize each dataframe, column by column
-	for column in columns:
-		df = normalize_formula(df, averages, std_devs, column)
-	return df
-
-
-def normalize(train_df, test_df, columns):
-	"""
-	Normalize the columns of the testing and training dataframe with
-	mean and standard deviation computed using the training
-	dataframe. This results in no data leakage.
-	norm = [(X - mean) / std_dev ]
-	Inspiration: Morgan McGuire
-	URL: https://gist.github.com/morganmcg1/15a9de711b9c5e8e1bd142b4be80252d#file-pyspark_normalize-py
-	"""
-	# compute averages and standard deviation for training df
-	averages, std_devs = compute_normalization_statistics(train_df, columns)
-
-	# normalize each dataframe, column by column
-	# normalize the training dataframe
-	train_df = normalize_for_each_column(train_df, 
-					     columns, 
-				   	     averages, 
-					     std_devs)
-	# normalize the testing dataframe, using training df statistics
-	test_df = normalize_for_each_column(test_df, 
-					    columns, 
-					    averages, 
-					    std_devs)
-
-	return train_df, test_df, averages, std_devs
-
-# ---------------------------------------------------------------------
 pb('Define useful re-usable functions for accessing dataframes')
 # ---------------------------------------------------------------------
 
@@ -191,53 +138,99 @@ def find_row_max(df, colName='coSim'):
 	row = df.filter(f.col(colName) == maxVal).first()
 	return row, maxVal
 
+
 # ---------------------------------------------------------------------
 pb('Split the data into training and test sets (80% train)')
 # ---------------------------------------------------------------------
 # https://github.com/apache/spark/blob/master/examples/src/main/python/ml/random_forest_regressor_example.py
 
-(train_df, test_df) = df.randomSplit([0.8, 0.2])
+(train_df, test_df) = df.randomSplit([0.8, 0.2], 17)
+
 
 # ---------------------------------------------------------------------
-pb('Transform the dataframe to an RDD of LabeledPoint')
+pb('Create columns containing vectors for parts a) and b)')
 # ---------------------------------------------------------------------
 # https://github.com/BhaskarBiswas/PySpark-Codes/blob/master/Random_Forest_pyspark.py
 
-# Convert the dataframes to relational distributed databases
-# train_rdd = train_df.rdd
-# test_rdd = test_df.rdd
-
-# Transform the rdd's into df's of LabeledPoint
-# transformed_train_df = train_rdd.map(lambda row: LabeledPoint(row[0], Vectors.dense(row[1:])))
-# transformed_test_df = test_rdd.map(lambda row: LabeledPoint(row[0], Vectors.dense(row[1:])))
-
-col_names_vector = [col_names[i] for i in range(len(col_names)) \
+# All features in the dataset
+col_names_vector_a = [col_names[i] for i in range(len(col_names)) \
                     if col_names[i] != 'Price']
 
-# train_df, test_df, averages, std_devs = normalize(train_df, test_df, col_names_vector)
+# Only the feature with the highest correlation as determined in task 3
+# above
+col_names_vector_b = ['#Bathroom']
 
-# col_names_vector = [col_names_vector[i] + '_norm' for i in range(len(col_names_vector))]
+# Testing and training dataframes for A and B vectors
+train_df = vector_assemble_function(train_df, col_names_vector_a, 
+				    outputCol='VectorA')
+test_df = vector_assemble_function(test_df, col_names_vector_a, 
+				   outputCol='VectorA')
 
-col_names_vector = ['#Bathroom']
-
-train_df = vector_assemble_function(train_df, col_names_vector)
-test_df = vector_assemble_function(test_df, col_names_vector)
+train_df = vector_assemble_function(train_df, col_names_vector_b, 
+				    outputCol='VectorB')
+test_df = vector_assemble_function(test_df, col_names_vector_b, 
+				   outputCol='VectorB')
 
 
 # ---------------------------------------------------------------------
-pb('Training a random Forest model on the dataset')
+pb('Train a random Forest model on the datasets')
 # ---------------------------------------------------------------------
 
+# Random forest models for parts a) and b)
+rf_A = RandomForestRegressor(featuresCol='VectorA', labelCol='Price', 
+			     predictionCol='Prediction', maxDepth=5, 
+			     numTrees=500)
 
-rf = RandomForestRegressor(featuresCol='Vector', labelCol='Price', \
-			   predictionCol='Prediction', maxDepth=30, numTrees=5000)
+rf_B = RandomForestRegressor(featuresCol='VectorB', labelCol='Price', 
+                             predictionCol='Prediction', maxDepth=5, 
+                             numTrees=500)
+# Fit the models
+model_A = rf_A.fit(train_df)
+model_B = rf_B.fit(train_df)
 
-model = rf.fit(train_df)
+
+# ---------------------------------------------------------------------
+pb('Export the RF models and the testing and training datasets')
+# ---------------------------------------------------------------------
+
+# File names for Forest Regression output
+output_A = 'Group6_Task_3_Output_RF_A'
+output_B = 'Group6_Task_3_Output_RF_B'
+
+# Make sure there is not existing models
+# If models exist, then remove them
+
+import os
+
+model_A_exists = os.path.isdir(output_A)
+model_B_exists = os.path.isdir(output_B)
+
+import shutil
+
+if model_A_exists:
+	shutil.rmtree(output_A)
+if model_B_exists:
+	shutil.rmtree(output_B)
+
+# Export the models to a file
+model_A.save(output_A)
+model_B.save(output_B)
+
+# Export testing and training dataframes
+output_train = 'Group6_Task_3_Output_Train.csv'
+output_test = 'Group6_Task_3_Output_Test.csv'
+
+train_df.toPandas().to_csv(output_train)
+test_df.toPandas().to_csv(output_test)
+
+# -------------------------------------------
+# EOF - the following will be moved to task 4
+
+model = RandomForestRegressionModel.load(output_A)
 
 predictions = model.transform(train_df)
 
-predictions.select("Prediction", "Price", "Vector").show(5)
-
+predictions.select("Prediction", "Price", "VectorA").show(5)
 
 # Compute rmse
 # https://stackoverflow.com/a/61176108/11637415
