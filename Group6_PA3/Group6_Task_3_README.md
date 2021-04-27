@@ -31,6 +31,18 @@ The following is a list in order of what happens in this program:
 - The two models and the datasets (training and testing) are exported
 
 ## Instructions to run program
+
+The cluster is logged into using `ssh USER@hadoop-nn001.cs.okstate.edu`
+
+The output from `Task 1` is needed, so it is copied onto the cluster
+```
+scp Group6_Task_1_Output.csv USER@hadoop-nn001.cs.okstate.edu:/home/USER
+```
+The file needs to be stored in the hadoop file system:
+```
+hdfs dfs -copyFromLocal Group6_Task_1_Output.csv /user/USER
+```
+
 This file must be executed using `spark-submit`:
 ```
 bin/spark-submit Group6_Task_1_Code.py path/to/Group6_Task_1_Output.csv
