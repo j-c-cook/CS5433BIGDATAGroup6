@@ -32,21 +32,24 @@ The following is a list in order of what happens in this program:
 
 ## Instructions to run program
 
-The cluster is logged into using `ssh USER@hadoop-nn001.cs.okstate.edu`
+The cluster is logged into using `ssh cookjc@hadoop-nn001.cs.okstate.edu`
 
 The output from `Task 1` is needed, so it is copied onto the cluster
 ```
-scp Group6_Task_1_Output.csv USER@hadoop-nn001.cs.okstate.edu:/home/USER
+scp Group6_Task_1_Output.csv cookjc@hadoop-nn001.cs.okstate.edu:/home/cookjc
 ```
 The file needs to be stored in the hadoop file system:
 ```
-hdfs dfs -copyFromLocal Group6_Task_1_Output.csv /user/USER
+hdfs dfs -copyFromLocal Group6_Task_1_Output.csv /user/cookjc
 ```
 
 This file must be executed using `spark-submit`:
 ```
-bin/spark-submit Group6_Task_1_Code.py path/to/Group6_Task_1_Output.csv
+bin/spark-submit Group6_Task_3_Code.py Group6_Task_1_Output.csv > Group6_Task_3_Output_Log.txt
 ```
+
+The `> Group6_Task_3_Output_Log.txt` is added so the logs (std output)
+are printed to the file, not the console.
 
 ## Discussion of results
 There are 4 total outputs for this task:
