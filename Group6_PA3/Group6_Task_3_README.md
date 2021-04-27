@@ -45,8 +45,11 @@ hdfs dfs -copyFromLocal Group6_Task_1_Output.csv /user/cookjc
 
 This file must be executed using `spark-submit`:
 ```
-bin/spark-submit Group6_Task_3_Code.py Group6_Task_1_Output.csv
+bin/spark-submit Group6_Task_3_Code.py Group6_Task_1_Output.csv > Group6_Task_3_Output_Log.txt
 ```
+
+The `> Group6_Task_3_Output_Log.txt` is added so the logs (std output)
+are printed to the file, not the console.
 
 ## Discussion of results
 There are 4 total outputs for this task:
