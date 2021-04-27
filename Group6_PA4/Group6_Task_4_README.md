@@ -46,7 +46,8 @@ hdfs dfs -copyFromLocal Group6_Task_3_Output_Test.csv /user/cookjc
 ```
 The program must now be submitted using `spark-submit`:
 ```
-spark-submit Group6_Task_4_Code.py Group6_Task_3_Output_RF_A Group6_Task_3_Output_RF_B Group6_Task_3_Output_Test.csv > Group6_Task_4_Output_Log.txt
+spark-submit Group6_Task_4_Code.py Group6_Task_3_Output_RF_A Group6_Task_3_Output_RF_B Group6_Task_3_Output_Test.csv \
+> Group6_Task_4_Output_Log.txt
 ```
 
 The `> Group6_Task_4_Output_Log.txt` is added onto the end so the 
