@@ -1,3 +1,6 @@
 cd Group6_PA1
-pandoc -V geometry:margin=1in -o Group6_Task_1_README.pdf Group6_Task_1_README.md
+./build_task_1_doc.sh
+cd ..
+cd Group6_PA3
+./build_task_3_doc.sh
 cd ..
