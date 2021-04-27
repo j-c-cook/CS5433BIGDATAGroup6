@@ -54,8 +54,7 @@ method and pandas for Spearman and Kendall method. This is because Spark doesn't
 correlation tools. So to calculate the correlation coefficient using spearman and kendall
 we convert the spark dataframe to pandas, since pandas has the three correlation tools.
 
-* Note: Pandas are not efficient for big data. I know we are not dealing with big data 
-unfortunately, but spark is much better for big data.
+** Note: Pandas are not efficient for big data. I know we are not dealing with big data unfortunately, but spark is much better for big data.**
 
 The following is a list of tasks performed in the code in order:
 A spark configuration is defined and the Group6_Task1_Output.csv file 
