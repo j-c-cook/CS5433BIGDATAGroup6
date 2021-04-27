@@ -15,6 +15,7 @@ similarity.
 The following is a list of work done in order:
 
 The following is a list in order of what happens in this program:
+
 - The spark configuration is setup
 - A file path to `Group6_Task_1_Output.csv` is read in from the command
   line
@@ -31,12 +32,13 @@ The following is a list in order of what happens in this program:
 
 ## Instructions to run program
 This file must be executed using `spark-submit`:
-
+```
 bin/spark-submit Group6_Task_1_Code.py path/to/Group6_Task_1_Output.csv
-
+```
 
 ## Discussion of results
 There are 4 total outputs for this task:
+
 - Group6_Task_3_Output_RF_A - a folder containing the random forest 
   model using all the features
 - Group6_Task_3_Output_RF_B - a folder containing the random forest
