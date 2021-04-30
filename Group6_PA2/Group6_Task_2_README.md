@@ -14,7 +14,7 @@ data. Here all the categorical/discrete data has been converted to indexed value
 computation of the correlation coefficient across the dataset.
 
 The new dataset has schema of the following:
-
+```
  |-- Price: double (nullable = true)
  
  |-- Distance: double (nullable = true)
@@ -36,7 +36,7 @@ The new dataset has schema of the following:
  |-- Type_indexed: double (nullable = true)
  
  |-- Region_name_indexed: double (nullable = true)
-
+```
 
 The field names which has "indexed" appended to it are the field which were string values i.e
 categorical/discrete values. They were converted and indexed so the computation of correlation
@@ -45,13 +45,21 @@ would be more accurate, instead of removing those fields.
 ## Work done
 Spark and pandas was used in this task.
 
-In calculating the correlation coefficient, there are three methods that will be used
+The following is what is done in this file:
 
-* Pearson correlation method 	-> using Spark
-* Spearman correlation method 	-> using Pandas
-* Kendall correlation method	-> using Pandas
-
-
+- The spark configuration is defined
+- The `Group6_Task_1_Output.csv` is read in from the command line into
+  a spark dataframe
+- The spearman correlation is computed between all the features versus
+  the independent variable; price (done using pyspark built in
+  function)
+- The dataframe is converted to a pandas dataframe to further
+  investigate correlations, the Pearson, Spearman and Kendall methods
+  are computed. The following is done for each method:
+  * The correlation is computed
+  * The correlation dataframe is exported to a csv
+  * The correlation dataframe is printed to the console
+  * A heat map plot is created and saved
 
 Ideally, this task was done using spark and pandas. We used spark for Pearson correlation
 method and pandas for Spearman and Kendall method. This is because Spark doesn't have all
@@ -77,12 +85,15 @@ Hence we calculated the correlation coefficient using the spearman and kendall m
 in pandas. 
 
 ## Instructions to run program
-In the code, the path to the csv file to be imported is already specified.
+The code must be copied to the cluster:
+```
+scp Group6_Task_2_Code.py cookjc@hadoop-nn001.cs.okstate.edu:/home/cookjc
+```
 
 The python file must be executed using `spark-submit`:
 
 ```
-spark-submit Group6_Task_2_Code.py
+spark-submit Group6_Task_2_Code.py Group6_Task_1_Output.csv
 ```
 
 ## Discussion of results
@@ -99,3 +110,8 @@ for increase in pricing unlike spearman and kendall method.
 Summarily, the diffence in values between the bedroom and bathroom accross all three
 methods is really small. So it's safe to conclude that bedroom and bathroom are the major
 factors which affects the pricing of an apartment or house.
+
+Because the built in pyspark Person method indicates that `Bathroom` is
+the most important feature, that is what we will move forward with. 
+However, Spearman and Kendall indicating that Bedroom is more important
+is an interesting finding. 
