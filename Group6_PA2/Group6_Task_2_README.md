@@ -115,3 +115,6 @@ Because the built in pyspark Person method indicates that `Bathroom` is
 the most important feature, that is what we will move forward with. 
 However, Spearman and Kendall indicating that Bedroom is more important
 is an interesting finding. 
+
+There are 6 files output from this task. Each method (Pearson, Kendall 
+and Spearman) all have a csv and heatmap pdf exported. 
