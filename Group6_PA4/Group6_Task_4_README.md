@@ -46,18 +46,20 @@ hdfs dfs -copyFromLocal Group6_Task_3_Output_Test.csv /user/cookjc
 ```
 The program must now be submitted using `spark-submit`:
 ```
-spark-submit Group6_Task_4_Code.py Group6_Task_3_Output_RF_A Group6_Task_3_Output_RF_B Group6_Task_3_Output_Test.csv \
-> Group6_Task_4_Output_Log.txt
+spark-submit Group6_Task_4_Code.py Group6_Task_3_Output_RF_A Group6_Task_3_Output_RF_B Group6_Task_3_Output_Test.csv
 ```
-
-The `> Group6_Task_4_Output_Log.txt` is added onto the end so the 
-print statements in the file go to the console.
 
 ## Discussion of results
 
 The root mean squared error values are horribly high for both 
 predictions. The prediction using all of the features is lower than
 just using the bathroom. 
+
+The technique for finding the right combination of `tree depth` and
+`number of trees` is to provide very high numbers to get a very good
+fit, then reduce the size as small as is necessary to maintain a good
+fit. It did not matter how many trees I added for this model, the 
+`rmse` would not go down. 
 
 The conclusion of these root mean squared error results is that
 random forest regression is the wrong machine learning network for this

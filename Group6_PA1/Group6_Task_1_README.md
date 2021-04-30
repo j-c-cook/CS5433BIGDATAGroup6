@@ -66,6 +66,16 @@ data and then computation of cosine similarity of the first row versus
 all other rows. 
 
 ## Instructions to run program
+You must be logged into the hadoop cluster using 
+`ssh cookjc@hadoop-nn001.cs.okstate.edu`, with the username in this 
+example being `cookjc`. 
+
+The housing csv file that has had the bottom 20 garbage rows removed
+needs to be stored in the hadoop file system:
+```
+hdfs dfs -copyFromLocal Housing_data-Final-2.csv /user/cookjc
+```
+
 The file must be executed using `spark-submit`:
 
 ```

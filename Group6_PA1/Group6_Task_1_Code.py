@@ -71,7 +71,7 @@ pb('Spark Configuration setup')
 # ---------------------------------------------------------------------
 
 # Give the spark configuration
-conf = SparkConf().setMaster("local").setAppName("Group6Task1Code")
+conf = SparkConf().setMaster("yarn").setAppName("Group6Task1Code")
 # Set the log level to "WARN" to hide all INFO lines printed out
 sc = SparkContext(conf=conf)
 sc.setLogLevel("WARN")

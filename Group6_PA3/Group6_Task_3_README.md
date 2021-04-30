@@ -25,7 +25,7 @@ The following is a list in order of what happens in this program:
   networks:
   * a) all features in the dataset
   * b) Only the feature with the highest correlatin as determined in
-       task 2 (specifically #Bedroom)
+       task 2 (specifically #Bathroom)
 - Two random forest regression models are created using the training 
   data
 - The two models and the datasets (training and testing) are exported
@@ -34,22 +34,16 @@ The following is a list in order of what happens in this program:
 
 The cluster is logged into using `ssh cookjc@hadoop-nn001.cs.okstate.edu`
 
-The output from `Task 1` is needed, so it is copied onto the cluster
-```
-scp Group6_Task_1_Output.csv cookjc@hadoop-nn001.cs.okstate.edu:/home/cookjc
-```
-The file needs to be stored in the hadoop file system:
+If the output of `Task 1` is not yet in the `hadoop filesystem`, then it 
+needs to be copied:
 ```
 hdfs dfs -copyFromLocal Group6_Task_1_Output.csv /user/cookjc
 ```
 
 This file must be executed using `spark-submit`:
 ```
-bin/spark-submit Group6_Task_3_Code.py Group6_Task_1_Output.csv > Group6_Task_3_Output_Log.txt
+bin/spark-submit Group6_Task_3_Code.py Group6_Task_1_Output.csv
 ```
-
-The `> Group6_Task_3_Output_Log.txt` is added so the logs (std output)
-are printed to the file, not the console.
 
 ## Discussion of results
 There are 4 total outputs for this task:
