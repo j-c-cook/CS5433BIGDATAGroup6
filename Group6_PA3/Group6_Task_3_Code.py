@@ -226,24 +226,6 @@ output_test = 'Group6_Task_3_Output_Test.csv'
 train_df_untouched.toPandas().to_csv(output_train)
 test_df_untouched.toPandas().to_csv(output_test)
 
-# -------------------------------------------
-# EOF - the following will be moved to task 4
-
-model = RandomForestRegressionModel.load(output_A)
-
-predictions = model.transform(train_df)
-
-predictions.select("Prediction", "Price", "VectorA").show(5)
-
-# Compute rmse
-# https://stackoverflow.com/a/61176108/11637415
-
-df = predictions.withColumn('difference', f.col('Price') - f.col('Prediction'))
-df = df.withColumn('squared_difference', f.pow(f.col('difference'), f.lit(2).astype(IntegerType())))
-rmse = df.select(f.sqrt(f.avg(f.col('squared_difference'))).alias('rmse'))
-
-rmse.show()
-
 
 
 
