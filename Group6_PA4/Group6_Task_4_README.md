@@ -55,6 +55,12 @@ The root mean squared error values are horribly high for both
 predictions. The prediction using all of the features is lower than
 just using the bathroom. 
 
+The technique for finding the right combination of `tree depth` and
+`number of trees` is to provide very high numbers to get a very good
+fit, then reduce the size as small as is necessary to maintain a good
+fit. It did not matter how many trees I added for this model, the 
+`rmse` would not go down. 
+
 The conclusion of these root mean squared error results is that
 random forest regression is the wrong machine learning network for this
 task. 
